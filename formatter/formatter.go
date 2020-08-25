@@ -10,25 +10,6 @@ import (
 type Formatter struct {
 }
 
-type itemPlaceholder struct {
-	item        item
-	placeholder string
-}
-
-type formattingState struct {
-	actionCounter int
-	placeholders  []itemPlaceholder
-}
-
-func (s *formattingState) addPlaceholder(it item, p string) {
-	s.placeholders = append(s.placeholders, itemPlaceholder{item: it, placeholder: p})
-}
-
-func (s *formattingState) nextAction() int {
-	s.actionCounter++
-	return s.actionCounter
-}
-
 func (f Formatter) Format(input string) (string, error) {
 
 	items, err := parseTemplate([]byte(input))
@@ -36,6 +17,7 @@ func (f Formatter) Format(input string) (string, error) {
 		return "", err
 	}
 
+	const placeholderBase = "gotfmtid"
 	state := &formattingState{}
 	var withPlaceholders strings.Builder
 
@@ -43,13 +25,10 @@ func (f Formatter) Format(input string) (string, error) {
 		var v string
 		switch it.typ {
 		case tAction:
-			v = fmt.Sprintf(`<span gotfmtid%d/>`, state.nextAction())
+			v = fmt.Sprintf(`<span %s%d/>`, placeholderBase, state.nextAction())
 			state.addPlaceholder(it, v)
-		case tActionStart:
-			v = fmt.Sprintf(`<div gotfmtid%d>`, state.nextAction())
-			state.addPlaceholder(it, v)
-		case tActionEnd:
-			v = fmt.Sprintf(`</div gotfmtid%d>`, state.nextAction())
+		case tActionStart, tActionEnd:
+			v = fmt.Sprintf(`<div %s%d>`, placeholderBase, state.nextAction())
 			state.addPlaceholder(it, v)
 		case tOther:
 			v = string(it.val)
@@ -67,10 +46,8 @@ func (f Formatter) Format(input string) (string, error) {
 	formatted := gohtml.Format(s)
 
 	// Sanity check.
-	numPlaceholders := strings.Count(formatted, "gotfmtid")
+	numPlaceholders := strings.Count(formatted, placeholderBase)
 	if numPlaceholders != len(state.placeholders) {
-		//fmt.Println(formatted)
-		//fmt.Println(s)
 		return input, fmt.Errorf("placeholder mismatch: expected %d, got %d", len(state.placeholders), numPlaceholders)
 
 	}
@@ -87,4 +64,23 @@ func (f Formatter) Format(input string) (string, error) {
 
 	return replacer.Replace(formatted), nil
 
+}
+
+type formattingState struct {
+	actionCounter int
+	placeholders  []itemPlaceholder
+}
+
+func (s *formattingState) addPlaceholder(it item, p string) {
+	s.placeholders = append(s.placeholders, itemPlaceholder{item: it, placeholder: p})
+}
+
+func (s *formattingState) nextAction() int {
+	s.actionCounter++
+	return s.actionCounter
+}
+
+type itemPlaceholder struct {
+	item        item
+	placeholder string
 }
