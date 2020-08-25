@@ -1,0 +1,56 @@
+build:
+  main: main.go
+  binary: gotfmt
+  env:
+    - CGO_ENABLED=0
+  goos:
+    - darwin
+    - linux
+    - windows
+  goarch:
+    - amd64
+    - arm
+    - arm64
+brew:
+  github:
+    owner: bep
+    name: homebrew-tap
+  folder: Formula
+  homepage:  "https://github.com/bep/gotfmt"
+  description: "Formatter for Go templates."
+  test: |
+    system "#{bin}/gotfmt", "-h"
+nfpm:
+  formats:
+      - deb
+  vendor: "bep"
+  homepage: "https://github.com/bep/gotfmt"
+  maintainer: "<Bjørn Erik Pedersen bjorn.erik.pedersen@gmail.com>"
+  description: "Formatter for Go templates."
+  license: "Apache-2.0 License"
+  name_template: "{{.Binary}}_{{.Version}}_{{.Os}}-{{.Arch}}"
+  replacements:
+    amd64: 64bit
+    386: 32bit
+    arm: ARM
+    arm64: ARM64
+    darwin: macOS
+    linux: Linux
+    windows: Windows
+archive:
+  format: tar.gz
+  format_overrides:
+    - goos: windows
+      format: zip
+  name_template: "{{.Binary}}_{{.Version}}_{{.Os}}-{{.Arch}}"
+  replacements:
+    amd64: 64bit
+    386: 32bit
+    arm: ARM
+    arm64: ARM64
+    darwin: macOS
+    linux: Linux
+    windows: Windows
+  files:
+    - README.md
+    - LICENSE

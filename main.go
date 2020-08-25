@@ -10,13 +10,18 @@ import (
 )
 
 func main() {
-	log.SetPrefix("gotfmt: ")
+	if len(os.Args) == 2 && os.Args[1] == "-h" {
+		fmt.Println("usage: cat template.html | gotfmt")
+		return
+	}
+
+	log.SetPrefix("gotfmt: error: ")
 	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
 
 	stat, _ := os.Stdin.Stat()
 	isPipe := (stat.Mode() & os.ModeCharDevice) == 0
 	if !isPipe {
-		log.Fatal("error: Nothing to read")
+		log.Fatal("Nothing to read")
 	}
 	b, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
