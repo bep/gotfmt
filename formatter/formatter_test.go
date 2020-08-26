@@ -25,7 +25,7 @@ func TestFormatter(t *testing.T) {
 	//format(`{{ define "main" }}<div>Main</div>{{ end }}`)
 	//format(`<small>v{{ $.Version }}</small>`)
 	//format(`<div>{{ if .True }}True{{ end }}</div>`)
-	format(`{{ define "main" }}<div>Main</div>{{ end }}
+	format(`{{/* comment */}}{{ define "main" }}<div>Main</div>{{ end }}
 	
 	{{ define "other" }}<div>Main</div>{{ end }}`)
 

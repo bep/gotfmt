@@ -34,6 +34,9 @@ func (f Formatter) Format(input string) (string, error) {
 		case tAction:
 			v = fmt.Sprintf("INLINE_%s%d_", placeholderBase, state.nextAction())
 			addPlaceholder()
+		case tComment:
+			v = fmt.Sprintf("<!-- COMMENT_%s%d_ -->", placeholderBase, state.nextAction())
+			addPlaceholder()
 		case tActionStart:
 			v = fmt.Sprintf("<div %s%d>", placeholderBase, state.nextAction())
 			addPlaceholder()

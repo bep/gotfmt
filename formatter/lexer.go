@@ -16,12 +16,14 @@ var (
 
 	isStartKeywordRe = regexp.MustCompile(`{{\s*(define|if|range|with)`)
 	isEndKeywordRe   = regexp.MustCompile(`{{\s*end`)
+	isCommentRe      = regexp.MustCompile(`{{/\*`)
 )
 
 const (
 	tError itemType = iota
 	tEOF
 	tAction      // Standalone action.
+	tComment     // {{/* Comment */}}.
 	tActionStart // Start of: range, with, if
 	tActionEnd   // End of block.
 	tSpace       // Any whitespace that's not \n.
@@ -137,7 +139,9 @@ func handleAction(l *lexer) stateFunc {
 
 	l.pos += skip
 
-	if isEndKeywordRe.Match(command) {
+	if isCommentRe.Match(command) {
+		l.emit(tComment)
+	} else if isEndKeywordRe.Match(command) {
 		l.emit(tActionEnd)
 	} else if isStartKeywordRe.Match(command) {
 		l.emit(tActionStart)

@@ -59,4 +59,17 @@ func TestLexer(t *testing.T) {
 			tEOF)
 	})
 
+	c.Run("Template comment", func(c *qt.C) {
+		input := []byte("{{/* Comment */}}{{ range .Foo }}{{ end }}")
+		items, err := parseTemplate(input)
+		c.Assert(err, qt.IsNil)
+		c.Assert(items, qt.Not(qt.IsNil))
+
+		assertTypes(c, items,
+			tComment,
+			tActionStart,
+			tActionEnd,
+			tEOF)
+	})
+
 }
