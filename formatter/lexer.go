@@ -14,14 +14,15 @@ const eof = -1
 var (
 	endDelim = []byte("}}")
 
-	isStartKeywordRe = regexp.MustCompile(`{{\s*(define|if|range|with)`)
-	isEndKeywordRe   = regexp.MustCompile(`{{\s*end`)
-	isCommentRe      = regexp.MustCompile(`{{/\*`)
+	isStartKeywordRe = regexp.MustCompile(`^{{\s*(define|if|range|with)`)
+	isEndKeywordRe   = regexp.MustCompile(`^{{\s*end`)
+	isCommentRe      = regexp.MustCompile(`^{{/\*`)
 )
 
 const (
 	tError itemType = iota
 	tEOF
+
 	tAction      // Standalone action.
 	tComment     // {{/* Comment */}}.
 	tActionStart // Start of: range, with, if
@@ -61,6 +62,10 @@ type item struct {
 	typ itemType
 	pos int
 	val []byte
+}
+
+func (it item) isWhiteSpace() bool {
+	return it.typ == tNewline || it.typ == tSpace
 }
 
 type itemType int
