@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"unicode"
+	"unicode/utf8"
 )
 
+const eof = -1
+
 var (
-	startDelim = []byte("{{")
-	endDelim   = []byte("}}")
+	endDelim = []byte("}}")
 
 	isStartKeywordRe = regexp.MustCompile(`{{\s*(define|if|range|with)`)
 	isEndKeywordRe   = regexp.MustCompile(`{{\s*end`)
@@ -21,25 +24,28 @@ const (
 	tAction      // Standalone action.
 	tActionStart // Start of: range, with, if
 	tActionEnd   // End of block.
+	tSpace       // Any whitespace that's not \n.
+	tNewline     // Newline (\n).
 	tOther       // HTML etc.
 )
 
 func main(l *lexer) stateFunc {
-	if l.isEOF() {
-		return lexDone
+	for {
+		switch r := l.next(); {
+		case r == '{' && l.peek() == '{':
+			l.backup()
+			if l.pos > l.start {
+				l.emit(tOther)
+			}
+			return handleAction
+		case r == '\n':
+			l.emit(tNewline)
+		case unicode.IsSpace(r):
+			l.emit(tSpace)
+		case r == eof:
+			return lexDone
+		}
 	}
-
-	// Fast forward to next Go template command.
-	i := l.index(startDelim)
-
-	if i != -1 {
-		l.pos += i
-		l.emit(tOther)
-		return handleAction
-	}
-
-	l.pos = len(l.input)
-	return lexDone
 
 }
 
@@ -65,10 +71,7 @@ type lexer struct {
 
 	pos   int // input position
 	start int // item start position
-}
-
-func (l *lexer) isEOF() bool {
-	return l.pos >= len(l.input)
+	width int // width of last element
 }
 
 func (l *lexer) emit(t itemType) {
@@ -76,8 +79,34 @@ func (l *lexer) emit(t itemType) {
 	l.start = l.pos
 }
 
+func (l *lexer) next() rune {
+	if l.pos >= len(l.input) {
+		l.width = 0
+		return eof
+	}
+
+	runeValue, runeWidth := utf8.DecodeRune(l.input[l.pos:])
+	l.width = runeWidth
+	l.pos += l.width
+	return runeValue
+}
+
+func (l *lexer) peek() rune {
+	r := l.next()
+	l.backup()
+	return r
+}
+
+func (l *lexer) backup() {
+	l.pos -= l.width
+}
+
 func (l *lexer) index(b []byte) int {
 	return bytes.Index(l.input[l.pos:], b)
+}
+
+func (l *lexer) hasPrefix(b []byte) bool {
+	return bytes.HasPrefix(l.input[l.pos:], b)
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFunc {

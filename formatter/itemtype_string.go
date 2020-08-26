@@ -4,17 +4,6 @@ package formatter
 
 import "strconv"
 
-const _itemType_name = "tErrortEOFtActiontActionStarttActionEndtOther"
-
-var _itemType_index = [...]uint8{0, 6, 10, 17, 29, 39, 45}
-
-func (i itemType) String() string {
-	if i < 0 || i >= itemType(len(_itemType_index)-1) {
-		return "itemType(" + strconv.FormatInt(int64(i), 10) + ")"
-	}
-	return _itemType_name[_itemType_index[i]:_itemType_index[i+1]]
-}
-
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
@@ -24,5 +13,18 @@ func _() {
 	_ = x[tAction-2]
 	_ = x[tActionStart-3]
 	_ = x[tActionEnd-4]
-	_ = x[tOther-5]
+	_ = x[tSpace-5]
+	_ = x[tNewline-6]
+	_ = x[tOther-7]
+}
+
+const _itemType_name = "tErrortEOFtActiontActionStarttActionEndtSpacetNewlinetOther"
+
+var _itemType_index = [...]uint8{0, 6, 10, 17, 29, 39, 45, 53, 59}
+
+func (i itemType) String() string {
+	if i < 0 || i >= itemType(len(_itemType_index)-1) {
+		return "itemType(" + strconv.FormatInt(int64(i), 10) + ")"
+	}
+	return _itemType_name[_itemType_index[i]:_itemType_index[i+1]]
 }
