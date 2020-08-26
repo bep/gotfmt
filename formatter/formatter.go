@@ -23,12 +23,16 @@ func (f Formatter) Format(input string) (string, error) {
 
 	for _, it := range items {
 		var v string
+
 		switch it.typ {
 		case tAction:
-			v = fmt.Sprintf(`<span %s%d/>`, placeholderBase, state.nextAction())
+			v = fmt.Sprintf("INLINE_%s%d", placeholderBase, state.nextAction())
 			state.addPlaceholder(it, v)
-		case tActionStart, tActionEnd:
-			v = fmt.Sprintf(`<div %s%d>`, placeholderBase, state.nextAction())
+		case tActionStart:
+			v = fmt.Sprintf("<div %s%d>", placeholderBase, state.nextAction())
+			state.addPlaceholder(it, v)
+		case tActionEnd:
+			v = fmt.Sprintf("</div %s%d>", placeholderBase, state.nextAction())
 			state.addPlaceholder(it, v)
 		case tOther:
 			v = string(it.val)
@@ -39,17 +43,20 @@ func (f Formatter) Format(input string) (string, error) {
 		default:
 			panic(fmt.Sprintf("unsupported type: %s", it.typ))
 		}
+
 		withPlaceholders.WriteString(v)
+
 	}
 
 	s := withPlaceholders.String()
+
 	formatted := gohtml.Format(s)
 
 	// Sanity check.
 	numPlaceholders := strings.Count(formatted, placeholderBase)
 	if numPlaceholders != len(state.placeholders) {
+		//fmt.Println(formatted)
 		return input, fmt.Errorf("placeholder mismatch: expected %d, got %d", len(state.placeholders), numPlaceholders)
-
 	}
 
 	oldnew := make([]string, len(state.placeholders)*2)

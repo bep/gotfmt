@@ -20,8 +20,10 @@ func TestFormatter(t *testing.T) {
 		fmt.Println("-------")
 	}
 
-	format(`<div>{{ range .Foo }}<div>{{ . }}</div>{{ end }}</div>`)
-	format(`<div class='{{ printf "%s" .Foo  }}'>  <div>inner</div> </div>`)
-	format(`{{ define "main" }}<div>Main</div>{{ end }}`)
+	//format(`<div>{{ range .Foo }}<div>{{ . }}</div>{{ end }}</div>`)
+	//format(`<div class='{{ printf "%s" .Foo  }}'>  <div>inner</div> </div>`)
+	//format(`{{ define "main" }}<div>Main</div>{{ end }}`)
+	//format(`<small>v{{ $.Version }}</small>`)
+	format(`<div>{{ if .True }}True{{ end }}</div>`)
 
 }
