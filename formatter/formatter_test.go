@@ -47,7 +47,7 @@ func TestFormatter(t *testing.T) {
 			"Preserve space above block",
 			`<h1>Hugo</h1>
 			
-			{{ range .Foo }}{{ . }}{{ end }}
+{{ range .Foo }}{{ . }}{{ end }}
  `, `
 <h1>
   Hugo
@@ -79,7 +79,68 @@ func TestFormatter(t *testing.T) {
 `}, {
 			"Preserve space in pre",
 			`<pre>     {{ range .Foo }}        {{ . }}  {{ end }}    </pre>`,
-			`<pre>     {{ range .Foo }}        {{ . }}  {{ end }}    </pre>`},
+			`<pre>     {{ range .Foo }}        {{ . }}  {{ end }}    </pre>`,
+		},
+		{
+			"else",
+			`{{ if .Foo }}Foo{{ else }}Bar{{ end }}`,
+			`
+{{ if .Foo }}
+  Foo
+{{ else }}
+  Bar
+{{ end }}
+`,
+		},
+		{
+			"else inside",
+			`{{ define "main" }}{{ if .Foo }}Foo{{ else }}Bar{{ end }}{{ end }}`,
+			`
+{{ define "main" }}
+  {{ if .Foo }}
+    Foo
+  {{ else }}
+    Bar
+  {{ end }}
+{{ end }}
+`,
+		},
+		{
+			"else if",
+			`{{ if .Foo }}Foo{{ else if .Bar }}Bar{{ end }}`,
+			`
+{{ if .Foo }}
+  Foo
+{{ else if .Bar }}
+  Bar
+{{ end }}
+`,
+		},
+		{
+			"with else",
+			`{{ with .Foo }}Foo{{else }}Bar{{ end }}`,
+			`
+{{ with .Foo }}
+  Foo
+{{else }}
+  Bar
+{{ end }}
+`,
+		},
+		{
+			"with 1, no newline added",
+			`{{ with .Enum }}
+Enum:
+{{ range . }}
+{{ end }}
+{{ end }}`,
+			`
+{{ with .Enum }}
+  Enum:
+  {{ range . }}{{ end }}
+{{ end }}
+`,
+		},
 	} {
 		c.Run(test.name, func(c *qt.C) {
 			res, err := f.Format(test.input)

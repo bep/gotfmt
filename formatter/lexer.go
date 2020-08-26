@@ -14,25 +14,28 @@ const eof = -1
 var (
 	endDelim = []byte("}}")
 
-	isStartKeywordRe = regexp.MustCompile(`^{{\s*(define|if|range|with)`)
-	isEndKeywordRe   = regexp.MustCompile(`^{{\s*end`)
-	isCommentRe      = regexp.MustCompile(`^{{/\*`)
+	isStartKeywordRe    = regexp.MustCompile(`^{{\s*(define|if|range|with)`)
+	isEndStartKeywordRe = regexp.MustCompile(`^{{\s*else`)
+	isEndKeywordRe      = regexp.MustCompile(`^{{\s*end`)
+	isCommentRe         = regexp.MustCompile(`^{{/\*`)
 )
 
 const (
 	tError itemType = iota
 	tEOF
 
-	tAction      // Standalone action.
-	tComment     // {{/* Comment */}}.
-	tActionStart // Start of: range, with, if
-	tActionEnd   // End of block.
-	tSpace       // Any whitespace that's not \n.
-	tNewline     // Newline (\n).
-	tOther       // HTML etc.
+	tAction         // Standalone action.
+	tComment        // {{/* Comment */}}.
+	tActionStart    // Start of: range, with, if
+	tActionEndStart // Start of: else, else if
+	tActionEnd      // End of block.
+	tSpace          // Any whitespace that's not \n.
+	tNewline        // Newline (\n).
+	tOther          // HTML etc.
 )
 
 func main(l *lexer) stateFunc {
+
 	for {
 		switch r := l.next(); {
 		case r == '{' && l.peek() == '{':
@@ -40,13 +43,15 @@ func main(l *lexer) stateFunc {
 			if l.pos > l.start {
 				l.emit(tOther)
 			}
-			return handleAction
+			return lexAction
 		case r == '\n':
 			l.emit(tNewline)
 		case unicode.IsSpace(r):
 			l.emit(tSpace)
 		case r == eof:
 			return lexDone
+		default:
+			return lexOther
 		}
 	}
 
@@ -79,6 +84,7 @@ type lexer struct {
 	pos   int // input position
 	start int // item start position
 	width int // width of last element
+
 }
 
 func (l *lexer) emit(t itemType) {
@@ -112,10 +118,6 @@ func (l *lexer) index(b []byte) int {
 	return bytes.Index(l.input[l.pos:], b)
 }
 
-func (l *lexer) hasPrefix(b []byte) bool {
-	return bytes.HasPrefix(l.input[l.pos:], b)
-}
-
 func (l *lexer) errorf(format string, args ...interface{}) stateFunc {
 	l.items = append(l.items, item{tError, l.start, []byte(fmt.Sprintf(format, args...))})
 	// nil terminates the parser
@@ -131,8 +133,25 @@ func (l *lexer) run() *lexer {
 
 type stateFunc func(*lexer) stateFunc
 
+// Consume until first whitespace or {.
+func lexOther(l *lexer) stateFunc {
+	skip := bytes.IndexFunc(l.input[l.pos:], func(r rune) bool {
+		return r == '{' || unicode.IsSpace(r)
+	})
+
+	if skip == -1 {
+		l.pos = len(l.input)
+		return lexDone
+	}
+
+	l.pos += skip
+	l.emit(tOther)
+
+	return main
+}
+
 // Begins with "{{"
-func handleAction(l *lexer) stateFunc {
+func lexAction(l *lexer) stateFunc {
 	idxEndDelim := l.index(endDelim)
 	if idxEndDelim == -1 {
 		return l.errorf("missing closing delimiter")
@@ -150,6 +169,8 @@ func handleAction(l *lexer) stateFunc {
 		l.emit(tActionEnd)
 	} else if isStartKeywordRe.Match(command) {
 		l.emit(tActionStart)
+	} else if isEndStartKeywordRe.Match(command) {
+		l.emit(tActionEndStart)
 	} else {
 		l.emit(tAction)
 	}

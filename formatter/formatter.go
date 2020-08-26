@@ -2,6 +2,7 @@ package formatter
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/yosssi/gohtml"
@@ -40,7 +41,7 @@ func (f Formatter) Format(input string) (string, error) {
 	for _, it := range items {
 		var v string
 		addPlaceholder := func() {
-			state.addPlaceholder(
+			state.addReplacement(
 				itemPlaceholder{item: it, placeholder: v},
 			)
 		}
@@ -57,6 +58,12 @@ func (f Formatter) Format(input string) (string, error) {
 			addPlaceholder()
 		case tActionEnd:
 			v = actionPlaceholder(true)
+			addPlaceholder()
+		case tActionEndStart:
+			v = fmt.Sprintf("</div %s%d>", placeholderBase, state.nextAction())
+			state.addTemporary(v)
+			withPlaceholders.WriteString(v)
+			v = fmt.Sprintf("<div %s%d>", placeholderBase, state.nextAction())
 			addPlaceholder()
 		case tNewline:
 			v = string(it.val)
@@ -77,6 +84,7 @@ func (f Formatter) Format(input string) (string, error) {
 			if numPrecedingNewlines > 1 {
 				withPlaceholders.WriteString(newlinePlaceholder + "\n")
 			}
+			numPrecedingNewlines = 0
 		}
 
 		if !it.isWhiteSpace() {
@@ -88,30 +96,35 @@ func (f Formatter) Format(input string) (string, error) {
 	}
 
 	s := withPlaceholders.String()
-
 	formatted := gohtml.Format(s)
+
+	//fmt.Println(formatted)
 
 	// Sanity check.
 	numPlaceholders := strings.Count(formatted, placeholderBase)
-	if numPlaceholders != len(state.placeholders) {
-		return input, fmt.Errorf("placeholder mismatch: expected %d, got %d", len(state.placeholders), numPlaceholders)
+	if numPlaceholders != state.numPlaceholders() {
+		return input, fmt.Errorf("placeholder mismatch: expected %d, got %d", state.numPlaceholders(), numPlaceholders)
 	}
 
-	oldnew := make([]string, len(state.placeholders)*2)
+	oldnew := make([]string, len(state.toReplace)*2)
 	i := 0
-	for _, p := range state.placeholders {
+	for _, p := range state.toReplace {
 		oldnew[i] = p.placeholder
-		valStr := string(p.item.val)
-		replacement := valStr
-		replacement = strings.TrimSpace(replacement)
-		if replacement != valStr {
-			// TODO(bep) check this fmt.Println("===>", valStr, "=>", replacement, "<")
-		}
+		var replacement string
+		replacement = string(p.item.val)
+		replacement = strings.TrimSpace(replacement) // TODO(bep) check this
+
 		oldnew[i+1] = replacement
 		i += 2
 	}
 
 	formatted = strings.ReplaceAll(formatted, newlinePlaceholder, "")
+
+	for _, s := range state.toRemove {
+		// Remove the entire line
+		re := regexp.MustCompile(fmt.Sprintf(`(?m)\n+^.*%s.*$`, s))
+		formatted = re.ReplaceAllString(formatted, "")
+	}
 
 	replacer := strings.NewReplacer(oldnew...)
 
@@ -121,11 +134,20 @@ func (f Formatter) Format(input string) (string, error) {
 
 type formattingState struct {
 	actionCounter int
-	placeholders  []itemPlaceholder
+	toReplace     []itemPlaceholder
+	toRemove      []string
 }
 
-func (s *formattingState) addPlaceholder(p itemPlaceholder) {
-	s.placeholders = append(s.placeholders, p)
+func (s *formattingState) addReplacement(p itemPlaceholder) {
+	s.toReplace = append(s.toReplace, p)
+}
+
+func (s *formattingState) numPlaceholders() int {
+	return len(s.toReplace) + len(s.toRemove)
+}
+
+func (s *formattingState) addTemporary(str string) {
+	s.toRemove = append(s.toRemove, str)
 }
 
 func (s *formattingState) nextAction() int {
