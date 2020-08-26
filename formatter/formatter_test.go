@@ -65,6 +65,8 @@ func TestFormatter(t *testing.T) {
 
 
 
+
+
 			{{/* comment */}}
 			{{ range .Foo }}{{ . }}{{ end }}
  `, `

@@ -73,6 +73,10 @@ func (it item) isWhiteSpace() bool {
 	return it.typ == tNewline || it.typ == tSpace
 }
 
+func (it item) preserveNewlineBefore() bool {
+	return it.typ == tComment || it.typ == tActionStart
+}
+
 type itemType int
 
 type lexer struct {

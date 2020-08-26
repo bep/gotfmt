@@ -24,7 +24,6 @@ func (f Formatter) Format(input string) (string, error) {
 	)
 	state := &formattingState{}
 	var withPlaceholders strings.Builder
-	var numPrecedingNewlines int
 
 	inlinePlaceholder := func() string {
 		return fmt.Sprintf("INLINE_%s%d_", placeholderBase, state.nextAction())
@@ -38,7 +37,20 @@ func (f Formatter) Format(input string) (string, error) {
 		return fmt.Sprintf("<%sdiv %s%d>", close, placeholderBase, state.nextAction())
 	}
 
-	for _, it := range items {
+	nextNonWhiteSpace := func(i int) (it item) {
+		for j := i; j < len(items); j++ {
+			it = items[j]
+			if !it.isWhiteSpace() {
+				return
+			}
+		}
+		return
+	}
+
+	var newlineCounter int
+	var newlineInserted bool
+
+	for i, it := range items {
 		var v string
 		addPlaceholder := func() {
 			state.addReplacement(
@@ -66,8 +78,18 @@ func (f Formatter) Format(input string) (string, error) {
 			v = fmt.Sprintf("<div %s%d>", placeholderBase, state.nextAction())
 			addPlaceholder()
 		case tNewline:
-			v = string(it.val)
-			numPrecedingNewlines++
+			newlineCounter++
+			var next item
+			if !newlineInserted && newlineCounter > 1 {
+				next = nextNonWhiteSpace(i)
+			}
+			if next.preserveNewlineBefore() {
+				// Preserve a newline before template comments and blocks.
+				v = newlinePlaceholder
+				newlineInserted = true
+			} else {
+				v = string(it.val)
+			}
 		case tOther, tSpace:
 			v = string(it.val)
 		case tEOF:
@@ -78,17 +100,10 @@ func (f Formatter) Format(input string) (string, error) {
 			panic(fmt.Sprintf("unsupported type: %s", it.typ))
 		}
 
-		// Preserve some intentional whitespace above template blocks and comments.
-		switch it.typ {
-		case tActionStart, tComment:
-			if numPrecedingNewlines > 1 {
-				withPlaceholders.WriteString(newlinePlaceholder + "\n")
-			}
-			numPrecedingNewlines = 0
-		}
-
 		if !it.isWhiteSpace() {
-			numPrecedingNewlines = 0
+			// Reset state for next action/comment.
+			newlineInserted = false
+			newlineCounter = 0
 		}
 
 		withPlaceholders.WriteString(v)
