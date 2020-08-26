@@ -26,7 +26,7 @@ func (f Formatter) Format(input string) (string, error) {
 
 		switch it.typ {
 		case tAction:
-			v = fmt.Sprintf("INLINE_%s%d", placeholderBase, state.nextAction())
+			v = fmt.Sprintf("INLINE_%s%d_", placeholderBase, state.nextAction())
 			state.addPlaceholder(it, v)
 		case tActionStart:
 			v = fmt.Sprintf("<div %s%d>", placeholderBase, state.nextAction())
@@ -55,7 +55,7 @@ func (f Formatter) Format(input string) (string, error) {
 	// Sanity check.
 	numPlaceholders := strings.Count(formatted, placeholderBase)
 	if numPlaceholders != len(state.placeholders) {
-		fmt.Println(formatted)
+		//fmt.Println(s)
 		for i := 1; i <= len(state.placeholders); i++ {
 			pid := fmt.Sprintf("%s%d", placeholderBase, i)
 			if !(strings.Contains(formatted, pid)) {
