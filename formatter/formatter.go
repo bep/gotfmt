@@ -55,7 +55,13 @@ func (f Formatter) Format(input string) (string, error) {
 	// Sanity check.
 	numPlaceholders := strings.Count(formatted, placeholderBase)
 	if numPlaceholders != len(state.placeholders) {
-		//fmt.Println(formatted)
+		fmt.Println(formatted)
+		for i := 1; i <= len(state.placeholders); i++ {
+			pid := fmt.Sprintf("%s%d", placeholderBase, i)
+			if !(strings.Contains(formatted, pid)) {
+				fmt.Println(pid, " missing.")
+			}
+		}
 		return input, fmt.Errorf("placeholder mismatch: expected %d, got %d", len(state.placeholders), numPlaceholders)
 	}
 
