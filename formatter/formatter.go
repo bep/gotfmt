@@ -101,8 +101,12 @@ func (f Formatter) Format(input string) (string, error) {
 	i := 0
 	for _, p := range state.placeholders {
 		oldnew[i] = p.placeholder
-		replacement := string(p.item.val)
+		valStr := string(p.item.val)
+		replacement := valStr
 		replacement = strings.TrimSpace(replacement)
+		if replacement != valStr {
+			// TODO(bep) check this fmt.Println("===>", valStr, "=>", replacement, "<")
+		}
 		oldnew[i+1] = replacement
 		i += 2
 	}
