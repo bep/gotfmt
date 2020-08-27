@@ -155,7 +155,27 @@ func (f Formatter) Format(input string) (string, error) {
 
 	replacer := strings.NewReplacer(oldnew...)
 
-	return replacer.Replace(formatted), nil
+	formatted = replacer.Replace(formatted)
+
+	// We really need to preserve any trailing newline.
+	// This is a big thing for editors.
+	var hadTrailingNewline bool
+	for i := len(items) - 2; i >= 0; i-- {
+		it := items[i]
+		if it.typ == tSpace {
+			continue
+		}
+		if it.typ == tNewline {
+			hadTrailingNewline = true
+		}
+		break
+	}
+
+	if hadTrailingNewline {
+		formatted += "\n"
+	}
+
+	return formatted, nil
 
 }
 

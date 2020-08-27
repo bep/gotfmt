@@ -1,7 +1,6 @@
 package formatter
 
 import (
-	"strings"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
@@ -19,8 +18,7 @@ func TestFormatter(t *testing.T) {
 	}{
 		{
 			"Basic",
-			`<div>{{ range .Foo }}<div>{{ . }}</div>{{ end }}</div>`, `
-<div>
+			"<div>{{ range .Foo }}<div>{{ . }}</div>{{ end }}</div>\n", `<div>
   {{ range .Foo }}
     <div>
       {{ . }}
@@ -31,25 +29,20 @@ func TestFormatter(t *testing.T) {
 		{
 			"Inline 1",
 			`<div class='{{ printf "%s" .Foo  }}'>Foo</div>`,
-			`
-<div class='{{ printf "%s" .Foo  }}'>
+			`<div class='{{ printf "%s" .Foo  }}'>
   Foo
-</div>
-`},
+</div>`},
 		{
 			"Inline 2",
-			`<small>v{{ $.Version }}</small>`, `
-<small>
+			`<small>v{{ $.Version }}</small>`, `<small>
   v{{ $.Version }}
-</small>
-`},
+</small>`},
 		{
 			"Preserve space above block",
 			`<h1>Hugo</h1>
 			
 {{ range .Foo }}{{ . }}{{ end }}
-`, `
-<h1>
+`, `<h1>
   Hugo
 </h1>
 
@@ -62,7 +55,8 @@ func TestFormatter(t *testing.T) {
 			`{{ range .Foo }}{{ . }}{{ end }}
 
 <h1>Hugo</h1>
-`, "{{ range .Foo }}\n  {{ . }}\n{{ end }}\n\n<h1>\n  Hugo\n</h1>"},
+`, "{{ range .Foo }}\n  {{ . }}\n{{ end }}\n\n<h1>\n  Hugo\n</h1>\n"},
+
 		{
 			"Preserve some space above comment",
 			`<h1>Hugo</h1>
@@ -75,8 +69,7 @@ func TestFormatter(t *testing.T) {
 
 			{{/* comment */}}
 			{{ range .Foo }}{{ . }}{{ end }}
-`, `
-<h1>
+`, `<h1>
   Hugo
 </h1>
 
@@ -92,48 +85,40 @@ func TestFormatter(t *testing.T) {
 		{
 			"else",
 			`{{ if .Foo }}Foo{{ else }}Bar{{ end }}`,
-			`
-{{ if .Foo }}
+			`{{ if .Foo }}
   Foo
 {{ else }}
   Bar
-{{ end }}
-`,
+{{ end }}`,
 		},
 		{
 			"else inside",
 			`{{ define "main" }}{{ if .Foo }}Foo{{ else }}Bar{{ end }}{{ end }}`,
-			`
-{{ define "main" }}
+			`{{ define "main" }}
   {{ if .Foo }}
     Foo
   {{ else }}
     Bar
   {{ end }}
-{{ end }}
-`,
+{{ end }}`,
 		},
 		{
 			"else if",
 			`{{ if .Foo }}Foo{{ else if .Bar }}Bar{{ end }}`,
-			`
-{{ if .Foo }}
+			`{{ if .Foo }}
   Foo
 {{ else if .Bar }}
   Bar
-{{ end }}
-`,
+{{ end }}`,
 		},
 		{
 			"with else",
 			`{{ with .Foo }}Foo{{else }}Bar{{ end }}`,
-			`
-{{ with .Foo }}
+			`{{ with .Foo }}
   Foo
 {{else }}
   Bar
-{{ end }}
-`,
+{{ end }}`,
 		},
 		{
 			"with 1, no newline added",
@@ -142,12 +127,10 @@ Enum:
 {{ range . }}
 {{ end }}
 {{ end }}`,
-			`
-{{ with .Enum }}
+			`{{ with .Enum }}
   Enum:
   {{ range . }}{{ end }}
-{{ end }}
-`,
+{{ end }}`,
 		},
 		{
 			"Template blocks in HTML attribute",
@@ -158,11 +141,7 @@ Enum:
 		c.Run(test.name, func(c *qt.C) {
 			res, err := f.Format(test.input)
 			c.Assert(err, qt.IsNil)
-			// Make the testdata a little easier to construct.
-			res = strings.Trim(res, "\n")
-			expect := strings.Trim(test.output, "\n")
-			c.Assert(res, qt.Equals, expect, qt.Commentf("%s", res))
+			c.Assert(res, qt.Equals, test.output, qt.Commentf("%s", res))
 		})
-
 	}
 }
