@@ -14,7 +14,7 @@ type Formatter struct {
 
 const (
 	placeholderBase    = "gotfmt__id"
-	newlinePlaceholder = "gotfmt__newline"
+	newlinePlaceholder = "<div gotfmt__newline />"
 )
 
 func (f Formatter) Format(input string) (string, error) {
@@ -105,11 +105,11 @@ func (f Formatter) Format(input string) (string, error) {
 		case tNewline:
 			prev := prevLineItem(i, 1, preserveNewlineAfter)
 			if !prev.IsZero() {
-				v = "\n" + newlinePlaceholder + "\n"
+				v = newlinePlaceholder
 			} else {
 				next := nextLineItem(i, 1, preserveNewlineBefore)
 				if !next.IsZero() {
-					v = "\n" + newlinePlaceholder + "\n"
+					v = newlinePlaceholder
 				} else {
 					v = string(it.val)
 				}

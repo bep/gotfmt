@@ -79,7 +79,11 @@ func TestFormatter(t *testing.T) {
 {{ range .Foo }}
   {{ . }}
 {{ end }}
-`}, {
+`},
+		{
+			"Preserve some space below comment",
+			"{{/* comment */}}\n\n\nText.", "{{/* comment */}}\n\nText."},
+		{
 			"Preserve space in pre",
 			`<pre>     {{ range .Foo }}        {{ . }}  {{ end }}    </pre>`,
 			`<pre>     {{ range .Foo }}        {{ . }}  {{ end }}    </pre>`,

@@ -103,7 +103,7 @@ func preserveNewlineBefore(it item) bool {
 }
 
 func preserveNewlineAfter(it item) bool {
-	return it.typ == tActionEnd
+	return it.typ == tActionEnd || it.typ == tComment
 }
 
 func (it item) IsZero() bool {
