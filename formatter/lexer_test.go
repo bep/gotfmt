@@ -114,13 +114,11 @@ Enum:
 			tEOF)
 	})
 
-	c.Run("quoted template blocks", func(c *qt.C) {
-		items := parse(c, `<body class="{{ with .Type }}{{ . }}{{ end }}"><div class='{{ with .Type }}{{ . }}{{ end }}'>{{ range .Foo }}{{ . }}{{ end}}`)
+	c.Run("Template blocks inside HTML attribute", func(c *qt.C) {
+		items := parse(c, `<body {{ with .Type }}{{ . }}{{ end }}>`)
 
 		assertTypes(c, items,
-			tBracketOpen, tOther, tSpace, tOther, tQuoteStart, tAction, tAction, tAction, tQuoteEnd, tBracketClose,
-			tBracketOpen, tOther, tSpace, tOther, tQuoteStart, tAction, tAction, tAction, tQuoteEnd, tBracketClose,
-			tActionStart, tAction, tActionEnd, tEOF,
+			tBracketOpen, tOther, tSpace, tAction, tAction, tAction, tBracketClose, tEOF,
 		)
 	})
 

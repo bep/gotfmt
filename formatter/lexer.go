@@ -33,8 +33,6 @@ const (
 	tBracketOpen    // HTML opening bracket, '<'.
 	tBracketClose   // HTML closing bracket, '>'.
 	tSpace          // Any whitespace that's not \n.
-	tQuoteStart     // Single or double quotation mark.
-	tQuoteEnd       // Single or double quotation mark.
 	tNewline        // Newline (\n).
 	tOther          // HTML etc.
 )
@@ -51,26 +49,12 @@ func main(l *lexer) stateFunc {
 				l.emit(tOther)
 			}
 			return lexAction
-		case !l.inQuote() && r == '<':
+		case r == '<':
 			l.inHTMLElement = true
 			l.emit(tBracketOpen)
-		case !l.inQuote() && r == '>':
+		case r == '>':
 			l.inHTMLElement = false
 			l.emit(tBracketClose)
-		case l.inHTMLElement && r == '\'':
-			if l.inQuoteSingle {
-				l.emit(tQuoteEnd)
-			} else {
-				l.emit(tQuoteStart)
-			}
-			l.inQuoteSingle = !l.inQuoteSingle
-		case l.inHTMLElement && r == '"':
-			if l.inQuoteDouble {
-				l.emit(tQuoteEnd)
-			} else {
-				l.emit(tQuoteStart)
-			}
-			l.inQuoteDouble = !l.inQuoteDouble
 		case r == '\n':
 			l.emit(tNewline)
 		case unicode.IsSpace(r):
@@ -225,7 +209,7 @@ func lexAction(l *lexer) stateFunc {
 
 	if isCommentRe.Match(command) {
 		l.emit(tComment)
-	} else if l.inQuote() {
+	} else if l.inHTMLElement {
 		l.emit(tAction)
 	} else if isEndKeywordRe.Match(command) {
 		l.emit(tActionEnd)
@@ -263,8 +247,4 @@ func parseTemplate(input []byte) (items []item, err error) {
 		}
 	}
 	return
-}
-
-func (l *lexer) inQuote() bool {
-	return l.inQuoteDouble || l.inQuoteSingle
 }

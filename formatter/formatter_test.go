@@ -52,7 +52,9 @@ func TestFormatter(t *testing.T) {
 `},
 		{
 			"Preserve space below block",
-			`{{ range .Foo }}{{ . }}{{ end }}
+			`     {{ range .Foo }}
+			 {{ . }}
+   {{ end }}
 
 <h1>Hugo</h1>
 `, "{{ range .Foo }}\n  {{ . }}\n{{ end }}\n\n<h1>\n  Hugo\n</h1>\n"},
@@ -136,6 +138,11 @@ Enum:
 			"Template blocks in HTML attribute",
 			`<body class="{{ with .Foo }}{{ . }}{{ end }}">`,
 			`<body class="{{ with .Foo }}{{ . }}{{ end }}">`,
+		},
+		{
+			"Unqouted template blocks in HTML attribute",
+			`<button {{ with .Foo }}{{ . }}{{ end }}>`,
+			`<button {{ with .Foo }}{{ . }}{{ end }}>`,
 		},
 		{
 			"Deeply nested template blocks",

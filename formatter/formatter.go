@@ -12,6 +12,11 @@ import (
 type Formatter struct {
 }
 
+const (
+	placeholderBase    = "gotfmt__id"
+	newlinePlaceholder = "gotfmt__newline"
+)
+
 func (f Formatter) Format(input string) (string, error) {
 
 	items, err := parseTemplate([]byte(input))
@@ -19,10 +24,6 @@ func (f Formatter) Format(input string) (string, error) {
 		return "", err
 	}
 
-	const (
-		placeholderBase    = "gotfmt__id"
-		newlinePlaceholder = "gotfmt__newline"
-	)
 	state := &formattingState{}
 	var withPlaceholders strings.Builder
 
@@ -45,7 +46,7 @@ func (f Formatter) Format(input string) (string, error) {
 			if it.typ == tNewline {
 				skipCount++
 			} else if matches(it) {
-				if skipCount >= skip {
+				if skipCount == skip {
 					return it
 				}
 				return zeroIt
@@ -63,7 +64,7 @@ func (f Formatter) Format(input string) (string, error) {
 			if it.typ == tNewline {
 				skipCount++
 			} else if matches(it) {
-				if skipCount >= skip {
+				if skipCount == skip {
 					return it
 				}
 				return zeroIt
@@ -104,17 +105,16 @@ func (f Formatter) Format(input string) (string, error) {
 		case tNewline:
 			prev := prevLineItem(i, 1, preserveNewlineAfter)
 			if !prev.IsZero() {
-				v = newlinePlaceholder
+				v = "\n" + newlinePlaceholder + "\n"
 			} else {
 				next := nextLineItem(i, 1, preserveNewlineBefore)
-
 				if !next.IsZero() {
-					v = newlinePlaceholder
+					v = "\n" + newlinePlaceholder + "\n"
 				} else {
 					v = string(it.val)
 				}
 			}
-		case tOther, tSpace, tBracketOpen, tBracketClose, tQuoteStart, tQuoteEnd:
+		case tOther, tSpace, tBracketOpen, tBracketClose:
 			v = string(it.val)
 		case tEOF:
 			if len(it.val) > 0 {
