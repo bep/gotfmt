@@ -14,7 +14,7 @@ type Formatter struct {
 
 const (
 	placeholderBase    = "gotfmt__id"
-	newlinePlaceholder = "<div gotfmt__newline />"
+	newlinePlaceholder = "<br gotfmt__newline />"
 )
 
 func (f Formatter) Format(input string) (string, error) {
@@ -75,6 +75,16 @@ func (f Formatter) Format(input string) (string, error) {
 		return zeroIt
 	}
 
+	prevItem := func(i int, matches func(it item) bool) item {
+		for j := i - 1; j >= 0; j-- {
+			it := items[j]
+			if matches(it) {
+				return it
+			}
+		}
+		return zeroIt
+	}
+
 	for i, it := range items {
 		var v string
 		addPlaceholder := func() {
@@ -106,7 +116,7 @@ func (f Formatter) Format(input string) (string, error) {
 			prev := prevLineItem(i, 1, preserveNewlineAfter)
 			if !prev.IsZero() {
 				v = newlinePlaceholder
-			} else {
+			} else if prevItem(i, preserveNewlineAfter).IsZero() {
 				next := nextLineItem(i, 1, preserveNewlineBefore)
 				if !next.IsZero() {
 					v = newlinePlaceholder
@@ -157,7 +167,6 @@ func (f Formatter) Format(input string) (string, error) {
 		formatted = re.ReplaceAllString(formatted, "")
 		// In case it's left on the same line as others.
 		formatted = strings.ReplaceAll(formatted, s, "")
-
 	}
 
 	replacer := strings.NewReplacer(oldnew...)

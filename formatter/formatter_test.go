@@ -49,7 +49,10 @@ func TestFormatter(t *testing.T) {
 {{ range .Foo }}
   {{ . }}
 {{ end }}
-`},
+`}, {
+			"Preserve space between blocks",
+			"{{ range .Foo }}{{ end }}\n\n\n\n{{ range .Moo }}{{ end }}",
+			"{{ range .Foo }}{{ end }}\n\n{{ range .Moo }}{{ end }}"},
 		{
 			"Preserve space below block",
 			`     {{ range .Foo }}
