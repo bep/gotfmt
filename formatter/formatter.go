@@ -2,6 +2,7 @@ package formatter
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 
@@ -127,10 +128,10 @@ func (f Formatter) Format(input string) (string, error) {
 	s := withPlaceholders.String()
 	formatted := gohtml.Format(s)
 
-	// Sanity check.
 	numPlaceholders := strings.Count(formatted, placeholderBase)
 	if numPlaceholders != state.numPlaceholders() {
-		return input, fmt.Errorf("placeholder mismatch: expected %d, got %d", state.numPlaceholders(), numPlaceholders)
+		log.Printf("placeholder mismatch: expected %d, got %d", state.numPlaceholders(), numPlaceholders)
+		return input, fmt.Errorf("failed to format, most likely because your HTML is not well formed (check for unclosed divs etc.)")
 	}
 
 	oldnew := make([]string, len(state.toReplace)*2)
