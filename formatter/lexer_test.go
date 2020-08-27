@@ -123,7 +123,7 @@ Enum:
 	})
 
 	c.Run("Template commands with trim markers", func(c *qt.C) {
-		items := parse(c, `{{- with .Type .}}{{ . }}{{- else --}}{{ . }}{{- end -}}`)
+		items := parse(c, `{{- with .Type .}}{{ . }}{{- else -}}{{ . }}{{- end -}}`)
 
 		assertTypes(c, items,
 			tActionStart, tAction, tActionEndStart, tAction, tActionEnd, tEOF,

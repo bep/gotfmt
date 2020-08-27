@@ -105,13 +105,25 @@ func TestFormatter(t *testing.T) {
 {{ end }}`,
 		},
 		{
-			"else if",
+			"else if 1",
 			`{{ if .Foo }}Foo{{ else if .Bar }}Bar{{ end }}`,
 			`{{ if .Foo }}
   Foo
 {{ else if .Bar }}
   Bar
 {{ end }}`,
+		},
+		{
+			"else if 2",
+			"{{ if \"\" }}{{ else if \"\"}}{{ end }}",
+			"{{ if \"\" }}\n{{ else if \"\"}}{{ end }}",
+		},
+		{
+			"else if 3",
+			`A{{ if "" }}
+{{ else if ""}}
+{{ end }}`,
+			"A\n{{ if \"\" }}\n{{ else if \"\"}}{{ end }}",
 		},
 		{
 			"with else",

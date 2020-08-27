@@ -152,9 +152,12 @@ func (f Formatter) Format(input string) (string, error) {
 	formatted = strings.ReplaceAll(formatted, newlinePlaceholder, "")
 
 	for _, s := range state.toRemove {
-		// Remove the entire line
-		re := regexp.MustCompile(fmt.Sprintf(`(?m)\n+^.*%s.*$`, s))
+		// Remove the entire line if it's on its own.
+		re := regexp.MustCompile(fmt.Sprintf(`(?m)\n+^\s*%s\s*$`, s))
 		formatted = re.ReplaceAllString(formatted, "")
+		// In case it's left on the same line as others.
+		formatted = strings.ReplaceAll(formatted, s, "")
+
 	}
 
 	replacer := strings.NewReplacer(oldnew...)
