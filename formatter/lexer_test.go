@@ -124,4 +124,12 @@ Enum:
 		)
 	})
 
+	c.Run("block keyword", func(c *qt.C) {
+		items := parse(c, `{{ block "title" . }}Title{{ end }}`)
+
+		assertTypes(c, items,
+			tActionStart, tOther, tActionEnd, tEOF,
+		)
+	})
+
 }

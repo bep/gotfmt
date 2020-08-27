@@ -14,7 +14,7 @@ const eof = -1
 var (
 	endDelim = []byte("}}")
 
-	isStartKeywordRe    = regexp.MustCompile(`^{{\s*(define|if|range|with)`)
+	isStartKeywordRe    = regexp.MustCompile(`^{{\s*(block|define|if|range|with)`)
 	isEndStartKeywordRe = regexp.MustCompile(`^{{\s*else`)
 	isEndKeywordRe      = regexp.MustCompile(`^{{\s*end`)
 	isCommentRe         = regexp.MustCompile(`^{{/\*`)
