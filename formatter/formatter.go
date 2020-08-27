@@ -48,6 +48,7 @@ func (f Formatter) Format(input string) (string, error) {
 				if skipCount >= skip {
 					return it
 				}
+				return zeroIt
 			} else if !it.isWhiteSpace() {
 				return zeroIt
 			}
@@ -65,6 +66,7 @@ func (f Formatter) Format(input string) (string, error) {
 				if skipCount >= skip {
 					return it
 				}
+				return zeroIt
 			} else if !it.isWhiteSpace() {
 				return zeroIt
 			}
@@ -105,6 +107,7 @@ func (f Formatter) Format(input string) (string, error) {
 				v = newlinePlaceholder
 			} else {
 				next := nextLineItem(i, 1, preserveNewlineBefore)
+
 				if !next.IsZero() {
 					v = newlinePlaceholder
 				} else {

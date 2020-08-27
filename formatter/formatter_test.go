@@ -137,6 +137,20 @@ Enum:
 			`<body class="{{ with .Foo }}{{ . }}{{ end }}">`,
 			`<body class="{{ with .Foo }}{{ . }}{{ end }}">`,
 		},
+		{
+			"Deeply nested template blocks",
+			`{{ range .Boo }}
+{{ if .Moo }}
+{{ if .FOO }}
+{{ end }}
+{{ end }}
+{{ end }}`,
+			`{{ range .Boo }}
+  {{ if .Moo }}
+    {{ if .FOO }}{{ end }}
+  {{ end }}
+{{ end }}`,
+		},
 	} {
 		c.Run(test.name, func(c *qt.C) {
 			res, err := f.Format(test.input)
