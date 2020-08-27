@@ -123,6 +123,8 @@ func (f Formatter) Format(input string) (string, error) {
 				} else {
 					v = string(it.val)
 				}
+			} else {
+				v = string(it.val)
 			}
 		case tOther, tSpace, tBracketOpen, tBracketClose:
 			v = string(it.val)

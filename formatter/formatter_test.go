@@ -38,6 +38,10 @@ func TestFormatter(t *testing.T) {
   v{{ $.Version }}
 </small>`},
 		{
+			"Inline following a block",
+			"{{ range .Foo }}{{ end }}\n{{ $v1 := \"foo\" }}\n{{ $v2 := \"bar\" }}",
+			"{{ range .Foo }}{{ end }}\n{{ $v1 := \"foo\" }}\n{{ $v2 := \"bar\" }}"},
+		{
 			"Preserve space above block",
 			`<h1>Hugo</h1>
 			
