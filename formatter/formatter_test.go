@@ -143,6 +143,11 @@ Enum:
 {{ end }}
 `,
 		},
+		{
+			"Template blocks in HTML attribute",
+			`<body class="{{ with .Foo }}{{ . }}{{ end }}">`,
+			`<body class="{{ with .Foo }}{{ . }}{{ end }}">`,
+		},
 	} {
 		c.Run(test.name, func(c *qt.C) {
 			res, err := f.Format(test.input)

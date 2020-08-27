@@ -29,7 +29,11 @@ const (
 	tActionStart    // Start of: range, with, if
 	tActionEndStart // Start of: else, else if
 	tActionEnd      // End of block.
+	tBracketOpen    // HTML opening bracket, '<'.
+	tBracketClose   // HTML closing bracket, '>'.
 	tSpace          // Any whitespace that's not \n.
+	tQuoteStart     // Single or double quotation mark.
+	tQuoteEnd       // Single or double quotation mark.
 	tNewline        // Newline (\n).
 	tOther          // HTML etc.
 )
@@ -44,6 +48,26 @@ func main(l *lexer) stateFunc {
 				l.emit(tOther)
 			}
 			return lexAction
+		case !l.inQuote() && r == '<':
+			l.inHTMLElement = true
+			l.emit(tBracketOpen)
+		case !l.inQuote() && r == '>':
+			l.inHTMLElement = false
+			l.emit(tBracketClose)
+		case l.inHTMLElement && r == '\'':
+			if l.inQuoteSingle {
+				l.emit(tQuoteEnd)
+			} else {
+				l.emit(tQuoteStart)
+			}
+			l.inQuoteSingle = !l.inQuoteSingle
+		case l.inHTMLElement && r == '"':
+			if l.inQuoteDouble {
+				l.emit(tQuoteEnd)
+			} else {
+				l.emit(tQuoteStart)
+			}
+			l.inQuoteDouble = !l.inQuoteDouble
 		case r == '\n':
 			l.emit(tNewline)
 		case unicode.IsSpace(r):
@@ -54,7 +78,19 @@ func main(l *lexer) stateFunc {
 			return lexOther
 		}
 	}
+}
 
+// The runes that we care about for some reason.
+func (l *lexer) hasSpecialMeaning(r rune) bool {
+	switch r {
+	case '{':
+		return true
+	case '\'', '"':
+		return true
+	case '>', '<':
+		return true
+	}
+	return unicode.IsSpace(r)
 }
 
 func newLexer(input []byte) *lexer {
@@ -88,6 +124,13 @@ type lexer struct {
 	pos   int // input position
 	start int // item start position
 	width int // width of last element
+
+	// Content state
+	inHTMLElement bool // whether we're inside a HTML element (opening or closing).
+
+	// Note that we only track quotes inside HTML elements, e.g. <body class="foo">
+	inQuoteSingle bool // whether we're inside a single quote.
+	inQuoteDouble bool // whether we're inside a double quote.
 
 }
 
@@ -137,10 +180,10 @@ func (l *lexer) run() *lexer {
 
 type stateFunc func(*lexer) stateFunc
 
-// Consume until first whitespace or {.
+// Consume until we arrive at one of the characters we care about.
 func lexOther(l *lexer) stateFunc {
 	skip := bytes.IndexFunc(l.input[l.pos:], func(r rune) bool {
-		return r == '{' || unicode.IsSpace(r)
+		return l.hasSpecialMeaning(r)
 	})
 
 	if skip == -1 {
@@ -169,6 +212,8 @@ func lexAction(l *lexer) stateFunc {
 
 	if isCommentRe.Match(command) {
 		l.emit(tComment)
+	} else if l.inQuote() {
+		l.emit(tAction)
 	} else if isEndKeywordRe.Match(command) {
 		l.emit(tActionEnd)
 	} else if isStartKeywordRe.Match(command) {
@@ -205,4 +250,8 @@ func parseTemplate(input []byte) (items []item, err error) {
 		}
 	}
 	return
+}
+
+func (l *lexer) inQuote() bool {
+	return l.inQuoteDouble || l.inQuoteSingle
 }

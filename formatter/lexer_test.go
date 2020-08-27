@@ -33,21 +33,18 @@ func TestLexer(t *testing.T) {
 
 	c.Run("One define", func(c *qt.C) {
 		items := parse(c, `{{ define "main" }}<div>Main</div>{{ end }}`)
-		assertTypes(c, items, tActionStart, tOther, tActionEnd, tEOF)
+		assertTypes(c, items, tActionStart, tBracketOpen, tOther, tBracketClose, tOther,
+			tBracketOpen, tOther, tBracketClose, tActionEnd, tEOF)
 	})
 
 	c.Run("Two define", func(c *qt.C) {
 		items := parse(c, "{{ define \"main\" }}<div>Main</div>{{ end }}\n\n{{ define \"other\" }}<div>Other</div>{{ end }}")
 
 		assertTypes(c, items,
-			tActionStart,
-			tOther,
-			tActionEnd,
+			tActionStart, tBracketOpen, tOther, tBracketClose, tOther, tBracketOpen, tOther, tBracketClose, tActionEnd,
 			tNewline, tNewline,
-			tActionStart,
-			tOther,
-			tActionEnd,
-			tEOF)
+			tActionStart, tBracketOpen, tOther, tBracketClose, tOther, tBracketOpen, tOther, tBracketClose, tActionEnd, tEOF,
+		)
 	})
 
 	c.Run("Whitespace", func(c *qt.C) {
@@ -115,6 +112,16 @@ Enum:
 			tNewline,
 			tActionEnd,
 			tEOF)
+	})
+
+	c.Run("quoted template blocks", func(c *qt.C) {
+		items := parse(c, `<body class="{{ with .Type }}{{ . }}{{ end }}"><div class='{{ with .Type }}{{ . }}{{ end }}'>{{ range .Foo }}{{ . }}{{ end}}`)
+
+		assertTypes(c, items,
+			tBracketOpen, tOther, tSpace, tOther, tQuoteStart, tAction, tAction, tAction, tQuoteEnd, tBracketClose,
+			tBracketOpen, tOther, tSpace, tOther, tQuoteStart, tAction, tAction, tAction, tQuoteEnd, tBracketClose,
+			tActionStart, tAction, tActionEnd, tEOF,
+		)
 	})
 
 }

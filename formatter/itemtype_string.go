@@ -15,14 +15,18 @@ func _() {
 	_ = x[tActionStart-4]
 	_ = x[tActionEndStart-5]
 	_ = x[tActionEnd-6]
-	_ = x[tSpace-7]
-	_ = x[tNewline-8]
-	_ = x[tOther-9]
+	_ = x[tBracketOpen-7]
+	_ = x[tBracketClose-8]
+	_ = x[tSpace-9]
+	_ = x[tQuoteStart-10]
+	_ = x[tQuoteEnd-11]
+	_ = x[tNewline-12]
+	_ = x[tOther-13]
 }
 
-const _itemType_name = "tErrortEOFtActiontCommenttActionStarttActionEndStarttActionEndtSpacetNewlinetOther"
+const _itemType_name = "tErrortEOFtActiontCommenttActionStarttActionEndStarttActionEndtBracketOpentBracketClosetSpacetQuoteStarttQuoteEndtNewlinetOther"
 
-var _itemType_index = [...]uint8{0, 6, 10, 17, 25, 37, 52, 62, 68, 76, 82}
+var _itemType_index = [...]uint8{0, 6, 10, 17, 25, 37, 52, 62, 74, 87, 93, 104, 113, 121, 127}
 
 func (i itemType) String() string {
 	if i < 0 || i >= itemType(len(_itemType_index)-1) {

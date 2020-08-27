@@ -90,14 +90,14 @@ func (f Formatter) Format(input string) (string, error) {
 			} else {
 				v = string(it.val)
 			}
-		case tOther, tSpace:
+		case tOther, tSpace, tBracketOpen, tBracketClose, tQuoteStart, tQuoteEnd:
 			v = string(it.val)
 		case tEOF:
 			if len(it.val) > 0 {
 				panic("eof with value")
 			}
 		default:
-			panic(fmt.Sprintf("unsupported type: %s", it.typ))
+			panic(fmt.Sprintf("unsupported item type: %s", it.typ))
 		}
 
 		if !it.isWhiteSpace() {
@@ -112,8 +112,6 @@ func (f Formatter) Format(input string) (string, error) {
 
 	s := withPlaceholders.String()
 	formatted := gohtml.Format(s)
-
-	//fmt.Println(formatted)
 
 	// Sanity check.
 	numPlaceholders := strings.Count(formatted, placeholderBase)
