@@ -25,16 +25,19 @@ const (
 	tError
 	tEOF
 
+	tBracketOpen  // HTML opening bracket, '<'.
+	tBracketClose // HTML closing bracket, '>'.
+	tSpace        // Any whitespace that's not \n.
+	tNewline      // Newline (\n).
+	tOther        // HTML etc.
+
+	// Types above here are template tokens.
 	tAction         // Standalone action.
 	tComment        // {{/* Comment */}}.
 	tActionStart    // Start of: range, with, if
 	tActionEndStart // Start of: else, else if
 	tActionEnd      // End of block.
-	tBracketOpen    // HTML opening bracket, '<'.
-	tBracketClose   // HTML closing bracket, '>'.
-	tSpace          // Any whitespace that's not \n.
-	tNewline        // Newline (\n).
-	tOther          // HTML etc.
+
 )
 
 var zeroIt item
@@ -98,11 +101,15 @@ func (it item) isWhiteSpace() bool {
 	return it.typ == tNewline || it.typ == tSpace
 }
 
-func preserveNewlineBefore(it item) bool {
+func (it item) isTemplateToken() bool {
+	return it.typ >= tAction
+}
+
+func (it item) shouldPreserveNewlineBefore() bool {
 	return it.typ == tComment || it.typ == tActionStart
 }
 
-func preserveNewlineAfter(it item) bool {
+func (it item) shouldPreserveNewlineAfter() bool {
 	return it.typ == tActionEnd || it.typ == tComment
 }
 

@@ -24,7 +24,8 @@ func (f Formatter) Format(input string) (string, error) {
 		return "", err
 	}
 
-	state := &formattingState{}
+	state := &parser{}
+
 	var withPlaceholders strings.Builder
 
 	inlinePlaceholder := func() string {
@@ -39,50 +40,20 @@ func (f Formatter) Format(input string) (string, error) {
 		return fmt.Sprintf("<%sdiv %s%d>", close, placeholderBase, state.nextAction())
 	}
 
-	nextLineItem := func(i, skip int, matches func(item) bool) item {
-		skipCount := 0
-		for j := i + 1; j < len(items); j++ {
-			it := items[j]
-			if it.typ == tNewline {
-				skipCount++
-			} else if matches(it) {
-				if skipCount == skip {
-					return it
-				}
-				return zeroIt
-			} else if !it.isWhiteSpace() {
-				return zeroIt
-			}
-		}
-		return zeroIt
-	}
-
-	prevLineItem := func(i, skip int, matches func(it item) bool) item {
-		skipCount := 0
+	// prevTemplateToken walks back and looks for the previous template token.
+	// It also returns number of newlines between.
+	prevTemplateToken := func(i int) (item, int) {
+		numNewlines := 0
 		for j := i - 1; j >= 0; j-- {
 			it := items[j]
+			if it.isTemplateToken() {
+				return it, numNewlines
+			}
 			if it.typ == tNewline {
-				skipCount++
-			} else if matches(it) {
-				if skipCount == skip {
-					return it
-				}
-				return zeroIt
-			} else if !it.isWhiteSpace() {
-				return zeroIt
+				numNewlines++
 			}
 		}
-		return zeroIt
-	}
-
-	prevItem := func(i int, matches func(it item) bool) item {
-		for j := i - 1; j >= 0; j-- {
-			it := items[j]
-			if matches(it) {
-				return it
-			}
-		}
-		return zeroIt
+		return zeroIt, 0
 	}
 
 	for i, it := range items {
@@ -113,19 +84,8 @@ func (f Formatter) Format(input string) (string, error) {
 			v = fmt.Sprintf("<div %s%d>", placeholderBase, state.nextAction())
 			addPlaceholder()
 		case tNewline:
-			prev := prevLineItem(i, 1, preserveNewlineAfter)
-			if !prev.IsZero() {
-				v = newlinePlaceholder
-			} else if prevItem(i, preserveNewlineAfter).IsZero() {
-				next := nextLineItem(i, 1, preserveNewlineBefore)
-				if !next.IsZero() {
-					v = newlinePlaceholder
-				} else {
-					v = string(it.val)
-				}
-			} else {
-				v = string(it.val)
-			}
+			state.newlineCounter++
+			v = string(it.val)
 		case tOther, tSpace, tBracketOpen, tBracketClose:
 			v = string(it.val)
 		case tEOF:
@@ -134,6 +94,22 @@ func (f Formatter) Format(input string) (string, error) {
 			}
 		default:
 			panic(fmt.Sprintf("unsupported item type: %s", it.typ))
+		}
+
+		if it.typ != tEOF && state.newlineCounter > 0 {
+			if state.newlineCounter > 0 && !it.isWhiteSpace() {
+				if state.newlineCounter > 1 {
+					if it.shouldPreserveNewlineBefore() {
+						withPlaceholders.WriteString(newlinePlaceholder)
+					} else {
+						prev, _ := prevTemplateToken(i)
+						if prev.shouldPreserveNewlineAfter() {
+							withPlaceholders.WriteString(newlinePlaceholder)
+						}
+					}
+				}
+				state.newlineCounter = 0
+			}
 		}
 
 		withPlaceholders.WriteString(v)
@@ -197,25 +173,26 @@ func (f Formatter) Format(input string) (string, error) {
 
 }
 
-type formattingState struct {
-	actionCounter int
-	toReplace     []itemPlaceholder
-	toRemove      []string
+type parser struct {
+	actionCounter  int
+	newlineCounter int
+	toReplace      []itemPlaceholder
+	toRemove       []string
 }
 
-func (s *formattingState) addReplacement(p itemPlaceholder) {
+func (s *parser) addReplacement(p itemPlaceholder) {
 	s.toReplace = append(s.toReplace, p)
 }
 
-func (s *formattingState) numPlaceholders() int {
+func (s *parser) numPlaceholders() int {
 	return len(s.toReplace) + len(s.toRemove)
 }
 
-func (s *formattingState) addTemporary(str string) {
+func (s *parser) addTemporary(str string) {
 	s.toRemove = append(s.toRemove, str)
 }
 
-func (s *formattingState) nextAction() int {
+func (s *parser) nextAction() int {
 	s.actionCounter++
 	return s.actionCounter
 }

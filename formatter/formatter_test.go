@@ -54,6 +54,10 @@ func TestFormatter(t *testing.T) {
   {{ . }}
 {{ end }}
 `}, {
+			"Preserve space above blocks 2",
+			"{{ if .Foo }}{{ end }}\n\n{{ $b := false }}\n\n{{ range .Foo }}{{ end }}",
+			"{{ if .Foo }}{{ end }}\n\n{{ $b := false }}\n\n{{ range .Foo }}{{ end }}"},
+		{
 			"Preserve space between blocks",
 			"{{ range .Foo }}{{ end }}\n\n\n\n{{ range .Moo }}{{ end }}",
 			"{{ range .Foo }}{{ end }}\n\n{{ range .Moo }}{{ end }}"},
