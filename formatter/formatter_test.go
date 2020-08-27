@@ -48,7 +48,7 @@ func TestFormatter(t *testing.T) {
 			`<h1>Hugo</h1>
 			
 {{ range .Foo }}{{ . }}{{ end }}
- `, `
+`, `
 <h1>
   Hugo
 </h1>
@@ -57,6 +57,12 @@ func TestFormatter(t *testing.T) {
   {{ . }}
 {{ end }}
 `},
+		{
+			"Preserve space below block",
+			`{{ range .Foo }}{{ . }}{{ end }}
+
+<h1>Hugo</h1>
+`, "{{ range .Foo }}\n  {{ . }}\n{{ end }}\n\n<h1>\n  Hugo\n</h1>"},
 		{
 			"Preserve some space above comment",
 			`<h1>Hugo</h1>
@@ -69,7 +75,7 @@ func TestFormatter(t *testing.T) {
 
 			{{/* comment */}}
 			{{ range .Foo }}{{ . }}{{ end }}
- `, `
+`, `
 <h1>
   Hugo
 </h1>

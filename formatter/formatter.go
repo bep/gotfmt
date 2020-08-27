@@ -37,18 +37,39 @@ func (f Formatter) Format(input string) (string, error) {
 		return fmt.Sprintf("<%sdiv %s%d>", close, placeholderBase, state.nextAction())
 	}
 
-	nextNonWhiteSpace := func(i int) (it item) {
-		for j := i; j < len(items); j++ {
-			it = items[j]
-			if !it.isWhiteSpace() {
-				return
+	nextLineItem := func(i, skip int, matches func(item) bool) item {
+		skipCount := 0
+		for j := i + 1; j < len(items); j++ {
+			it := items[j]
+			if it.typ == tNewline {
+				skipCount++
+			} else if matches(it) {
+				if skipCount >= skip {
+					return it
+				}
+			} else if !it.isWhiteSpace() {
+				return zeroIt
 			}
 		}
-		return
+		return zeroIt
 	}
 
-	var newlineCounter int
-	var newlineInserted bool
+	prevLineItem := func(i, skip int, matches func(it item) bool) item {
+		skipCount := 0
+		for j := i - 1; j >= 0; j-- {
+			it := items[j]
+			if it.typ == tNewline {
+				skipCount++
+			} else if matches(it) {
+				if skipCount >= skip {
+					return it
+				}
+			} else if !it.isWhiteSpace() {
+				return zeroIt
+			}
+		}
+		return zeroIt
+	}
 
 	for i, it := range items {
 		var v string
@@ -78,17 +99,16 @@ func (f Formatter) Format(input string) (string, error) {
 			v = fmt.Sprintf("<div %s%d>", placeholderBase, state.nextAction())
 			addPlaceholder()
 		case tNewline:
-			newlineCounter++
-			var next item
-			if !newlineInserted && newlineCounter > 1 {
-				next = nextNonWhiteSpace(i)
-			}
-			if next.preserveNewlineBefore() {
-				// Preserve a newline before template comments and blocks.
+			prev := prevLineItem(i, 1, preserveNewlineAfter)
+			if !prev.IsZero() {
 				v = newlinePlaceholder
-				newlineInserted = true
 			} else {
-				v = string(it.val)
+				next := nextLineItem(i, 1, preserveNewlineBefore)
+				if !next.IsZero() {
+					v = newlinePlaceholder
+				} else {
+					v = string(it.val)
+				}
 			}
 		case tOther, tSpace, tBracketOpen, tBracketClose, tQuoteStart, tQuoteEnd:
 			v = string(it.val)
@@ -98,12 +118,6 @@ func (f Formatter) Format(input string) (string, error) {
 			}
 		default:
 			panic(fmt.Sprintf("unsupported item type: %s", it.typ))
-		}
-
-		if !it.isWhiteSpace() {
-			// Reset state for next action/comment.
-			newlineInserted = false
-			newlineCounter = 0
 		}
 
 		withPlaceholders.WriteString(v)
@@ -125,7 +139,7 @@ func (f Formatter) Format(input string) (string, error) {
 		oldnew[i] = p.placeholder
 		var replacement string
 		replacement = string(p.item.val)
-		replacement = strings.TrimSpace(replacement) // TODO(bep) check this
+		replacement = strings.TrimSpace(replacement) // TODO(bep) check this, add test.
 
 		oldnew[i+1] = replacement
 		i += 2

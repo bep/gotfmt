@@ -21,7 +21,8 @@ var (
 )
 
 const (
-	tError itemType = iota
+	tZero itemType = iota
+	tError
 	tEOF
 
 	tAction         // Standalone action.
@@ -37,6 +38,8 @@ const (
 	tNewline        // Newline (\n).
 	tOther          // HTML etc.
 )
+
+var zeroIt item
 
 func main(l *lexer) stateFunc {
 
@@ -105,12 +108,22 @@ type item struct {
 	val []byte
 }
 
+type itemFunc func(item) bool
+
 func (it item) isWhiteSpace() bool {
 	return it.typ == tNewline || it.typ == tSpace
 }
 
-func (it item) preserveNewlineBefore() bool {
+func preserveNewlineBefore(it item) bool {
 	return it.typ == tComment || it.typ == tActionStart
+}
+
+func preserveNewlineAfter(it item) bool {
+	return it.typ == tActionEnd
+}
+
+func (it item) IsZero() bool {
+	return it.typ == tZero
 }
 
 type itemType int
