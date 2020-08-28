@@ -95,8 +95,6 @@ type item struct {
 	val []byte
 }
 
-type itemFunc func(item) bool
-
 func (it item) isWhiteSpace() bool {
 	return it.typ == tNewline || it.typ == tSpace
 }
@@ -117,6 +115,10 @@ func (it item) IsZero() bool {
 	return it.typ == tZero
 }
 
+func (it item) IsEOF() bool {
+	return it.typ == tEOF
+}
+
 type itemType int
 
 type lexer struct {
@@ -131,10 +133,6 @@ type lexer struct {
 
 	// Content state
 	inHTMLElement bool // whether we're inside a HTML element (opening or closing).
-
-	// Note that we only track quotes inside HTML elements, e.g. <body class="foo">
-	inQuoteSingle bool // whether we're inside a single quote.
-	inQuoteDouble bool // whether we're inside a double quote.
 
 }
 

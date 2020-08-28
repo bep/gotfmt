@@ -9,14 +9,17 @@ import (
 	"github.com/yosssi/gohtml"
 )
 
-type Formatter struct {
-}
-
 const (
 	placeholderBase    = "gotfmt__id"
 	newlinePlaceholder = "<br gotfmt__newline />"
 )
 
+// Formatter supports formatting some Go template string.
+// We currently only support Go HTML templates.
+type Formatter struct {
+}
+
+// Format formats input.
 func (f Formatter) Format(input string) (string, error) {
 
 	items, err := parseTemplate([]byte(input))
@@ -24,9 +27,10 @@ func (f Formatter) Format(input string) (string, error) {
 		return "", err
 	}
 
-	state := &parser{}
-
-	var withPlaceholders strings.Builder
+	state := &parser{
+		pos:   -1,
+		items: items,
+	}
 
 	inlinePlaceholder := func() string {
 		return fmt.Sprintf("INLINE_%s%d_", placeholderBase, state.nextAction())
@@ -40,23 +44,12 @@ func (f Formatter) Format(input string) (string, error) {
 		return fmt.Sprintf("<%sdiv %s%d>", close, placeholderBase, state.nextAction())
 	}
 
-	// prevTemplateToken walks back and looks for the previous template token.
-	// It also returns number of newlines between.
-	prevTemplateToken := func(i int) (item, int) {
-		numNewlines := 0
-		for j := i - 1; j >= 0; j-- {
-			it := items[j]
-			if it.isTemplateToken() {
-				return it, numNewlines
-			}
-			if it.typ == tNewline {
-				numNewlines++
-			}
+	for {
+		it := state.Next()
+		if it.IsEOF() {
+			break
 		}
-		return zeroIt, 0
-	}
 
-	for i, it := range items {
 		var v string
 		addPlaceholder := func() {
 			state.addReplacement(
@@ -80,7 +73,7 @@ func (f Formatter) Format(input string) (string, error) {
 		case tActionEndStart:
 			v = fmt.Sprintf("</div %s%d>", placeholderBase, state.nextAction())
 			state.addTemporary(v)
-			withPlaceholders.WriteString(v)
+			state.withPlaceholders.WriteString(v)
 			v = fmt.Sprintf("<div %s%d>", placeholderBase, state.nextAction())
 			addPlaceholder()
 		case tNewline:
@@ -100,11 +93,11 @@ func (f Formatter) Format(input string) (string, error) {
 			if state.newlineCounter > 0 && !it.isWhiteSpace() {
 				if state.newlineCounter > 1 {
 					if it.shouldPreserveNewlineBefore() {
-						withPlaceholders.WriteString(newlinePlaceholder)
+						state.withPlaceholders.WriteString(newlinePlaceholder)
 					} else {
-						prev, _ := prevTemplateToken(i)
+						prev, _ := state.prevTemplateToken()
 						if prev.shouldPreserveNewlineAfter() {
-							withPlaceholders.WriteString(newlinePlaceholder)
+							state.withPlaceholders.WriteString(newlinePlaceholder)
 						}
 					}
 				}
@@ -112,12 +105,11 @@ func (f Formatter) Format(input string) (string, error) {
 			}
 		}
 
-		withPlaceholders.WriteString(v)
-
+		state.withPlaceholders.WriteString(v)
 	}
 
-	s := withPlaceholders.String()
-	formatted := gohtml.Format(s)
+	withPlaceholders := state.withPlaceholders.String()
+	formatted := gohtml.Format(withPlaceholders)
 
 	numPlaceholders := strings.Count(formatted, placeholderBase)
 	if numPlaceholders != state.numPlaceholders() {
@@ -129,14 +121,15 @@ func (f Formatter) Format(input string) (string, error) {
 	i := 0
 	for _, p := range state.toReplace {
 		oldnew[i] = p.placeholder
-		var replacement string
-		replacement = string(p.item.val)
-		replacement = strings.TrimSpace(replacement) // TODO(bep) check this, add test.
-
+		replacement := string(p.item.val)
 		oldnew[i+1] = replacement
 		i += 2
 	}
 
+	// Note that all of these repeated replacements isn't a particulary effective
+	// way of doing this,
+	// but it assumes relatively small text documents, so it should
+	// be plenty fast enough.
 	formatted = strings.ReplaceAll(formatted, newlinePlaceholder, "")
 
 	for _, s := range state.toRemove {
@@ -151,21 +144,7 @@ func (f Formatter) Format(input string) (string, error) {
 
 	formatted = replacer.Replace(formatted)
 
-	// We really need to preserve any trailing newline.
-	// This is a big thing for editors.
-	var hadTrailingNewline bool
-	for i := len(items) - 2; i >= 0; i-- {
-		it := items[i]
-		if it.typ == tSpace {
-			continue
-		}
-		if it.typ == tNewline {
-			hadTrailingNewline = true
-		}
-		break
-	}
-
-	if hadTrailingNewline {
+	if state.hadTrailingNewline() {
 		formatted += "\n"
 	}
 
@@ -173,31 +152,82 @@ func (f Formatter) Format(input string) (string, error) {
 
 }
 
-type parser struct {
-	actionCounter  int
-	newlineCounter int
-	toReplace      []itemPlaceholder
-	toRemove       []string
-}
-
-func (s *parser) addReplacement(p itemPlaceholder) {
-	s.toReplace = append(s.toReplace, p)
-}
-
-func (s *parser) numPlaceholders() int {
-	return len(s.toReplace) + len(s.toRemove)
-}
-
-func (s *parser) addTemporary(str string) {
-	s.toRemove = append(s.toRemove, str)
-}
-
-func (s *parser) nextAction() int {
-	s.actionCounter++
-	return s.actionCounter
-}
-
 type itemPlaceholder struct {
 	item        item
 	placeholder string
+}
+
+type parser struct {
+	items []item
+	pos   int // current item's index in items
+
+	actionCounter  int // used as ID in placeholders
+	newlineCounter int // used to track and preserve some newlines.
+
+	toReplace []itemPlaceholder // temporary placeholders for template tokens.
+	toRemove  []string          // used to insert temporary </div> to preserve if/else indentation.
+
+	// This is what we send to the HTML formatter.
+	withPlaceholders strings.Builder
+}
+
+// Next moves the cursor one step ahead and returns that item.
+func (p *parser) Next() item {
+	if p.pos < len(p.items)-1 {
+		p.pos++
+		return p.items[p.pos]
+	}
+	panic("next called after EOF")
+}
+
+func (p *parser) addReplacement(ph itemPlaceholder) {
+	p.toReplace = append(p.toReplace, ph)
+}
+
+func (p *parser) addTemporary(str string) {
+	p.toRemove = append(p.toRemove, str)
+}
+
+// Returns whether the input source had a trailing newline.
+// We really need to preserve those.
+// This is a big thing for editors.
+func (p *parser) hadTrailingNewline() bool {
+	for i := len(p.items) - 2; i >= 0; i-- {
+		it := p.items[i]
+		if it.typ == tSpace {
+			continue
+		}
+		if it.typ == tNewline {
+			return true
+		}
+		break
+	}
+
+	return false
+}
+
+func (p *parser) nextAction() int {
+	p.actionCounter++
+	return p.actionCounter
+}
+
+func (p *parser) numPlaceholders() int {
+	return len(p.toReplace) + len(p.toRemove)
+}
+
+// prevTemplateToken walks back and looks for the previous template token.
+// It also returns number of newlines between.
+func (p *parser) prevTemplateToken() (item, int) {
+	numNewlines := 0
+	for j := p.pos - 1; j >= 0; j-- {
+		it := p.items[j]
+		if it.isTemplateToken() {
+			return it, numNewlines
+		}
+		if it.typ == tNewline {
+			numNewlines++
+		}
+	}
+	return zeroIt, 0
+
 }
