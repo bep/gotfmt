@@ -18,6 +18,11 @@ var (
 	isEndStartKeywordRe = regexp.MustCompile(`^{{-?\s*else`)
 	isEndKeywordRe      = regexp.MustCompile(`^{{-?\s*end`)
 	isCommentRe         = regexp.MustCompile(`^{{/\*`)
+	// There may be some fale positives here, but for this purpose it needs to
+	// be a little coarse grained to match "<body {{ with .Type }}{{ . }}{{ end }}>" etc.
+	htmlReBase   = `<\/?[a-zA-Z].*\s*\/?>`
+	isHTMLTagRe  = regexp.MustCompile("^" + htmlReBase)
+	wasHTMLTagRe = regexp.MustCompile(htmlReBase + "$")
 )
 
 const (
@@ -52,10 +57,10 @@ func main(l *lexer) stateFunc {
 				l.emit(tOther)
 			}
 			return lexAction
-		case r == '<':
+		case r == '<' && isHTMLTagRe.Match(l.input[l.pos-1:]):
 			l.inHTMLElement = true
 			l.emit(tBracketOpen)
-		case r == '>':
+		case r == '>' && wasHTMLTagRe.Match(l.input[:l.pos]):
 			l.inHTMLElement = false
 			l.emit(tBracketClose)
 		case r == '\n':

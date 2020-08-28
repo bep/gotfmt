@@ -122,6 +122,14 @@ Enum:
 		)
 	})
 
+	c.Run("Brackets in text", func(c *qt.C) {
+		items := parse(c, `32 < 52 a > b`)
+
+		assertTypes(c, items,
+			tOther, tSpace, tOther, tSpace, tOther, tSpace, tOther, tSpace, tOther, tSpace, tOther, tEOF,
+		)
+	})
+
 	c.Run("Template commands with trim markers", func(c *qt.C) {
 		items := parse(c, `{{- with .Type .}}{{ . }}{{- else -}}{{ . }}{{- end -}}`)
 

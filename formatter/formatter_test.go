@@ -185,6 +185,13 @@ Enum:
   {{ end }}
 {{ end }}`,
 		},
+		{
+			"With bracket in text",
+			`{{ if .Boo }}
+      <= {{ .Foo }}
+{{ end }}`,
+			"{{ if .Boo }}\n  <= {{ .Foo }}\n{{ end }}",
+		},
 	} {
 		c.Run(test.name, func(c *qt.C) {
 			res, err := f.Format(test.input)
